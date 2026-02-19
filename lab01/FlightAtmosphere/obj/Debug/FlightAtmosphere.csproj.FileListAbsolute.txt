@@ -1,0 +1,11 @@
+D:\Имитационное моделирование\lab1\lab1\FlightAtmosphere\FlightAtmosphere\bin\Debug\FlightAtmosphere.exe.config
+D:\Имитационное моделирование\lab1\lab1\FlightAtmosphere\FlightAtmosphere\bin\Debug\FlightAtmosphere.exe
+D:\Имитационное моделирование\lab1\lab1\FlightAtmosphere\FlightAtmosphere\bin\Debug\FlightAtmosphere.pdb
+D:\Имитационное моделирование\lab1\lab1\FlightAtmosphere\FlightAtmosphere\obj\Debug\FlightAtmosphere.csproj.AssemblyReference.cache
+D:\Имитационное моделирование\lab1\lab1\FlightAtmosphere\FlightAtmosphere\obj\Debug\FlightAtmosphere.Form1.resources
+D:\Имитационное моделирование\lab1\lab1\FlightAtmosphere\FlightAtmosphere\obj\Debug\FlightAtmosphere.Properties.Resources.resources
+D:\Имитационное моделирование\lab1\lab1\FlightAtmosphere\FlightAtmosphere\obj\Debug\FlightAtmosphere.csproj.GenerateResource.cache
+D:\Имитационное моделирование\lab1\lab1\FlightAtmosphere\FlightAtmosphere\obj\Debug\FlightAtmosphere.csproj.CoreCompileInputs.cache
+D:\Имитационное моделирование\lab1\lab1\FlightAtmosphere\FlightAtmosphere\obj\Debug\FlightAtmosphere.exe
+D:\Имитационное моделирование\lab1\lab1\FlightAtmosphere\FlightAtmosphere\obj\Debug\FlightAtmosphere.pdb
+D:\Имитационное моделирование\lab1\lab1\FlightAtmosphere\FlightAtmosphere\obj\Debug\FlightAtmosphere.exe.config
