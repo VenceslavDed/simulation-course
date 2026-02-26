@@ -1,0 +1,10 @@
+D:\Имитационное моделирование\lab2\HeatEquation\HeatEquation\HeatEquation\obj\Debug\HeatEquation.csproj.AssemblyReference.cache
+D:\Имитационное моделирование\lab2\HeatEquation\HeatEquation\HeatEquation\obj\Debug\HeatEquation.Properties.Resources.resources
+D:\Имитационное моделирование\lab2\HeatEquation\HeatEquation\HeatEquation\obj\Debug\HeatEquation.csproj.GenerateResource.cache
+D:\Имитационное моделирование\lab2\HeatEquation\HeatEquation\HeatEquation\obj\Debug\HeatEquation.csproj.CoreCompileInputs.cache
+D:\Имитационное моделирование\lab2\HeatEquation\HeatEquation\HeatEquation\bin\Debug\HeatEquation.exe.config
+D:\Имитационное моделирование\lab2\HeatEquation\HeatEquation\HeatEquation\bin\Debug\HeatEquation.exe
+D:\Имитационное моделирование\lab2\HeatEquation\HeatEquation\HeatEquation\bin\Debug\HeatEquation.pdb
+D:\Имитационное моделирование\lab2\HeatEquation\HeatEquation\HeatEquation\obj\Debug\HeatEquation.exe
+D:\Имитационное моделирование\lab2\HeatEquation\HeatEquation\HeatEquation\obj\Debug\HeatEquation.pdb
+D:\Имитационное моделирование\lab2\HeatEquation\HeatEquation\HeatEquation\obj\Debug\HeatEquation.exe.config
