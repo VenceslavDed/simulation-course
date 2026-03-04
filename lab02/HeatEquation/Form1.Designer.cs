@@ -19,13 +19,10 @@ namespace HeatEquation
         private GroupBox grpTable;
         private GroupBox grpChart;
 
-        // Поля ввода
         private Label lblL, lblRho, lblC, lblLambda, lblTLeft, lblTRight, lblTInit, lblTEnd;
         private TextBox txtL, txtRho, txtC, txtLambda, txtTLeft, txtTRight, txtTInit, txtTEnd;
 
-        // Вычисленное значение a
-        private Label lblA;
-
+      /*  private Label lblA; */
         private Button btnRun;
         private ProgressBar progressBar;
         private Label lblStatus;
@@ -42,7 +39,7 @@ namespace HeatEquation
             this.Font = new System.Drawing.Font("Segoe UI", 9f);
             this.StartPosition = FormStartPosition.CenterScreen;
 
-            // ===== LEFT PANEL =====
+            // ===== Левая панель =====
             panelLeft = new Panel
             {
                 Dock = DockStyle.Left,
@@ -60,7 +57,7 @@ namespace HeatEquation
                 ForeColor = Color.FromArgb(0, 90, 160),
                 Font = new System.Drawing.Font("Segoe UI", 9f, FontStyle.Bold),
                 Location = new Point(10, 10),
-                Size = new Size(260, 400),
+                Size = new Size(260, 385),
                 BackColor = Color.Transparent
             };
 
@@ -77,21 +74,12 @@ namespace HeatEquation
             grpParams.Size = new Size(260, row + 30);
             panelLeft.Controls.Add(grpParams);
 
-            // Метка вычисленного a
-            lblA = new Label
-            {
-                Text = "a = λ/(ρ·c) = — м²/с",
-                Location = new Point(10, grpParams.Bottom + 6),
-                Size = new Size(260, 20),
-                ForeColor = Color.FromArgb(0, 100, 180),
-                Font = new System.Drawing.Font("Segoe UI", 8.5f, FontStyle.Bold)
-            };
-            panelLeft.Controls.Add(lblA);
+       
 
             btnRun = new Button
             {
                 Text = "▶  Запустить",
-                Location = new Point(10, lblA.Bottom + 8),
+                Location = new Point(10, grpParams.Bottom + 8),
                 Size = new Size(260, 42),
                 BackColor = Color.FromArgb(0, 120, 212),
                 ForeColor = Color.White,
@@ -125,23 +113,13 @@ namespace HeatEquation
             };
             panelLeft.Controls.Add(lblStatus);
 
-            var lblFormula = new Label
-            {
-                Text = "Явная схема МКР:\nρ·c·(T[i,n+1]−T[i,n])/dt =\n= λ·(T[i+1,n]−2T[i,n]+T[i−1,n])/dx²\n\nr = λ·dt/(ρ·c·dx²) ≤ 0,5",
-                Location = new Point(10, lblStatus.Bottom + 4),
-                Size = new Size(260, 85),
-                ForeColor = Color.FromArgb(100, 100, 120),
-                Font = new System.Drawing.Font("Segoe UI", 8f)
-            };
-            panelLeft.Controls.Add(lblFormula);
-
-            // Подсказка материалов
+            //  материалы
             var grpMaterials = new GroupBox
             {
                 Text = "Примеры материалов",
                 ForeColor = Color.FromArgb(0, 90, 160),
                 Font = new System.Drawing.Font("Segoe UI", 8f, FontStyle.Bold),
-                Location = new Point(10, lblFormula.Bottom + 6),
+                Location = new Point(10, lblStatus.Bottom + 6),
                 Size = new Size(260, 120),
                 BackColor = Color.Transparent
             };
@@ -160,7 +138,7 @@ namespace HeatEquation
             grpMaterials.Controls.Add(lblMat);
             panelLeft.Controls.Add(grpMaterials);
 
-            // ===== RIGHT PANEL =====
+            // ===== Правая панель =====
             panelRight = new Panel
             {
                 Dock = DockStyle.Fill,
@@ -179,12 +157,14 @@ namespace HeatEquation
             };
             panelRight.Controls.Add(lblTitle);
 
+        
+
             grpTable = new GroupBox
             {
                 Text = "Температура в центре пластины после 2 с (°C)",
                 ForeColor = Color.FromArgb(60, 60, 70),
                 Font = new System.Drawing.Font("Segoe UI", 9f, FontStyle.Bold),
-                Location = new Point(10, 40),
+                Location = new Point(10, 58),
                 Size = new Size(880, 175),
                 BackColor = Color.Transparent
             };
@@ -231,15 +211,15 @@ namespace HeatEquation
                 Text = "Распределение температуры по толщине пластины",
                 ForeColor = Color.FromArgb(60, 60, 70),
                 Font = new System.Drawing.Font("Segoe UI", 9f, FontStyle.Bold),
-                Location = new Point(10, 225),
-                Size = new Size(880, 460),
+                Location = new Point(10, 243),
+                Size = new Size(880, 450),
                 BackColor = Color.Transparent
             };
 
             pnlChart = new Panel
             {
                 Location = new Point(10, 22),
-                Size = new Size(855, 425),
+                Size = new Size(855, 415),
                 BackColor = Color.White
             };
             pnlChart.Paint += pnlChart_Paint;

@@ -9,14 +9,14 @@ namespace HeatEquation
 {
     public partial class Form1 : Form
     {
-        private double L = 0.1;    // длина пластины, м
-        private double rho = 7800.0; // плотность, кг/м³ (сталь)
-        private double c = 500.0;  // удельная теплоёмкость, Дж/(кг·°C)
-        private double lambda = 50.0;   // теплопроводность, Вт/(м·°C)
-        private double T_left = 100.0; // температура левой границы, °C
-        private double T_right = 100.0; // температура правой границы, °C
-        private double T_init = 0.0;   // начальная температура, °C
-        private double t_end = 2.0;   // время моделирования, с
+        private double L = 0.1;
+        private double rho = 7800.0;
+        private double c = 500.0;
+        private double lambda = 50.0;
+        private double T_left = 100.0;
+        private double T_right = 100.0;
+        private double T_init = 0.0;
+        private double t_end = 2.0;
 
         private bool isRunning = false;
 
@@ -83,7 +83,7 @@ namespace HeatEquation
                 t_end = double.Parse(txtTEnd.Text.Replace(',', '.'), ci);
 
                 if (rho <= 0 || c <= 0 || lambda <= 0 || L <= 0 || t_end <= 0)
-                    throw new Exception("Параметры должны быть положительными.");
+                    throw new Exception("Все параметры должны быть положительными.");
             }
             catch (Exception ex)
             {
@@ -95,9 +95,7 @@ namespace HeatEquation
                 return;
             }
 
-            // a = lambda / (rho * c)
-            double a = lambda / (rho * c);
-            lblA.Text = $"a = λ/(ρ·c) = {a:G4} м²/с";
+
 
             for (int i = 0; i < 4; i++)
                 for (int j = 1; j <= 4; j++)
@@ -138,38 +136,23 @@ namespace HeatEquation
                     for (int jdt = 0; jdt < dtValues.Length; jdt++)
                     {
                         double dt = dtValues[jdt];
-                        // r = a * dt / dx²  — число Куранта
-                        double r = a * dt / (dx * dx);
                         int iCopy = idx, jCopy = jdt;
 
-                        if (r > 0.5)
-                        {
-                            this.Invoke((Action)(() =>
-                            {
-                                dgvResults.Rows[iCopy].Cells[jCopy + 1].Value = "неуст.";
-                                dgvResults.Rows[iCopy].Cells[jCopy + 1].Style.ForeColor = Color.FromArgb(200, 50, 30);
-                            }));
-                        }
-                        else
-                        {
-                            var (centerTemp, Tfinal, N) = Simulate(dx, dt, r);
+                        
+                        var (centerTemp, Tfinal, N) = SimulateImplicit(dx, dt);
 
-                            var col = lineColors[colorIdx % lineColors.Length];
-                            colorIdx++;
-                            string lbl = $"dx={dx}, dt={dt}";
-                            double[] copy = (double[])Tfinal.Clone();
-                            this.Invoke((Action)(() =>
-                            {
-                                chartSeries.Add((lbl, copy, dx, col));
-                                pnlChart.Invalidate();
-                            }));
+                        var col = lineColors[colorIdx % lineColors.Length];
+                        colorIdx++;
+                        string lbl = $"dx={dx}, dt={dt}";
+                        double[] copy = (double[])Tfinal.Clone();
 
-                            this.Invoke((Action)(() =>
-                            {
-                                dgvResults.Rows[iCopy].Cells[jCopy + 1].Value = $"{centerTemp:F4}";
-                                dgvResults.Rows[iCopy].Cells[jCopy + 1].Style.ForeColor = Color.FromArgb(0, 130, 60);
-                            }));
-                        }
+                        this.Invoke((Action)(() =>
+                        {
+                            chartSeries.Add((lbl, copy, dx, col));
+                            pnlChart.Invalidate();
+                            dgvResults.Rows[iCopy].Cells[jCopy + 1].Value = $"{centerTemp:F4}";
+                            dgvResults.Rows[iCopy].Cells[jCopy + 1].Style.ForeColor = Color.FromArgb(0, 130, 60);
+                        }));
 
                         done++;
                         this.Invoke((Action)(() =>
@@ -189,32 +172,59 @@ namespace HeatEquation
             isRunning = false;
         }
 
-        /// <summary>
-        /// Явная схема МКР:
-        /// ρ·c·(T[i,n+1] - T[i,n])/dt = λ·(T[i+1,n] - 2·T[i,n] + T[i-1,n])/dx²
-        /// Что эквивалентно:
-        /// T[i,n+1] = T[i,n] + r·(T[i+1,n] - 2·T[i,n] + T[i-1,n])
-        /// где r = a·dt/dx², a = λ/(ρ·c)
-        /// </summary>
-        private (double centerTemp, double[] Tfinal, int N) Simulate(double dx, double dt, double r)
+        
+        private (double centerTemp, double[] Tfinal, int N) SimulateImplicit(double dx, double dt)
         {
-            int N = (int)Math.Round(L / dx) + 1;
-            double[] T = new double[N];
-            double[] Tnew = new double[N];
+            int N = (int)Math.Round(L / dx) + 1;  // количество узлов
+            double h = dx;                          
+            double tau = dt;                        
+ 
+            double A = lambda / (h * h);                          
+            double B = 2.0 * lambda / (h * h) + rho * c / tau;   
+            double C = lambda / (h * h);                          
 
+            
+            double[] T = new double[N];   
+            double[] Tnew = new double[N];   
+
+            
             for (int i = 0; i < N; i++) T[i] = T_init;
+            
             T[0] = T_left;
             T[N - 1] = T_right;
 
+            
+            double[] alpha = new double[N];
+            double[] beta = new double[N];
+
             int steps = (int)Math.Round(t_end / dt);
+
             for (int n = 0; n < steps; n++)
             {
-                Tnew[0] = T_left;
+                
+                alpha[0] = 0.0;
+                beta[0] = T_left;
+
+                for (int i = 1; i < N - 1; i++)
+                {
+                   
+                    double F = -(rho * c / tau) * T[i];
+
+                    double denom = B - C * alpha[i - 1];
+
+                    alpha[i] = A / denom;
+
+                    beta[i] = (C * beta[i - 1] - F) / denom;
+                }
+
+                
                 Tnew[N - 1] = T_right;
 
-                // ρ·c·(T_new - T_old)/dt = λ·(T[i+1] - 2T[i] + T[i-1])/dx²
-                for (int i = 1; i < N - 1; i++)
-                    Tnew[i] = T[i] + r * (T[i + 1] - 2.0 * T[i] + T[i - 1]);
+                for (int i = N - 2; i >= 0; i--)
+                    Tnew[i] = alpha[i] * Tnew[i + 1] + beta[i];
+
+                Tnew[0] = T_left;
+                Tnew[N - 1] = T_right;
 
                 Array.Copy(Tnew, T, N);
             }
