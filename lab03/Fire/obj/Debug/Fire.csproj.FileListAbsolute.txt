@@ -1,0 +1,10 @@
+D:\Имитационное моделирование\lab3\Fire\Fire\obj\Debug\Fire.csproj.AssemblyReference.cache
+D:\Имитационное моделирование\lab3\Fire\Fire\obj\Debug\Fire.Properties.Resources.resources
+D:\Имитационное моделирование\lab3\Fire\Fire\obj\Debug\Fire.csproj.GenerateResource.cache
+D:\Имитационное моделирование\lab3\Fire\Fire\obj\Debug\Fire.csproj.CoreCompileInputs.cache
+D:\Имитационное моделирование\lab3\Fire\Fire\bin\Debug\Fire.exe.config
+D:\Имитационное моделирование\lab3\Fire\Fire\bin\Debug\Fire.exe
+D:\Имитационное моделирование\lab3\Fire\Fire\bin\Debug\Fire.pdb
+D:\Имитационное моделирование\lab3\Fire\Fire\obj\Debug\Fire.exe
+D:\Имитационное моделирование\lab3\Fire\Fire\obj\Debug\Fire.pdb
+D:\Имитационное моделирование\lab3\Fire\Fire\obj\Debug\Fire.exe.config
