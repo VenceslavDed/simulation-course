@@ -1,0 +1,8 @@
+D:\Имитационное моделирование\lab4\datchik\datchik\bin\Debug\datchik.exe.config
+D:\Имитационное моделирование\lab4\datchik\datchik\bin\Debug\datchik.exe
+D:\Имитационное моделирование\lab4\datchik\datchik\bin\Debug\datchik.pdb
+D:\Имитационное моделирование\lab4\datchik\datchik\obj\Debug\datchik.csproj.AssemblyReference.cache
+D:\Имитационное моделирование\lab4\datchik\datchik\obj\Debug\datchik.csproj.CoreCompileInputs.cache
+D:\Имитационное моделирование\lab4\datchik\datchik\obj\Debug\datchik.exe
+D:\Имитационное моделирование\lab4\datchik\datchik\obj\Debug\datchik.pdb
+D:\Имитационное моделирование\lab4\datchik\datchik\obj\Debug\datchik.exe.config
