@@ -1,0 +1,10 @@
+D:\Имитационное моделирование\lab5\lab 5\lab 5\obj\Debug\lab 5.csproj.AssemblyReference.cache
+D:\Имитационное моделирование\lab5\lab 5\lab 5\obj\Debug\lab_5.Properties.Resources.resources
+D:\Имитационное моделирование\lab5\lab 5\lab 5\obj\Debug\lab 5.csproj.GenerateResource.cache
+D:\Имитационное моделирование\lab5\lab 5\lab 5\obj\Debug\lab 5.csproj.CoreCompileInputs.cache
+D:\Имитационное моделирование\lab5\lab 5\lab 5\bin\Debug\lab 5.exe.config
+D:\Имитационное моделирование\lab5\lab 5\lab 5\bin\Debug\lab 5.exe
+D:\Имитационное моделирование\lab5\lab 5\lab 5\bin\Debug\lab 5.pdb
+D:\Имитационное моделирование\lab5\lab 5\lab 5\obj\Debug\lab 5.exe
+D:\Имитационное моделирование\lab5\lab 5\lab 5\obj\Debug\lab 5.pdb
+D:\Имитационное моделирование\lab5\lab 5\lab 5\obj\Debug\lab 5.exe.config
