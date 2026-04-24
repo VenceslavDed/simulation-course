@@ -1,0 +1,10 @@
+D:\Имитационное моделирование\lab6\lab6\lab6\obj\Debug\lab6.csproj.AssemblyReference.cache
+D:\Имитационное моделирование\lab6\lab6\lab6\obj\Debug\lab6.Properties.Resources.resources
+D:\Имитационное моделирование\lab6\lab6\lab6\obj\Debug\lab6.csproj.GenerateResource.cache
+D:\Имитационное моделирование\lab6\lab6\lab6\obj\Debug\lab6.csproj.CoreCompileInputs.cache
+D:\Имитационное моделирование\lab6\lab6\lab6\bin\Debug\lab6.exe.config
+D:\Имитационное моделирование\lab6\lab6\lab6\bin\Debug\lab6.exe
+D:\Имитационное моделирование\lab6\lab6\lab6\bin\Debug\lab6.pdb
+D:\Имитационное моделирование\lab6\lab6\lab6\obj\Debug\lab6.exe
+D:\Имитационное моделирование\lab6\lab6\lab6\obj\Debug\lab6.pdb
+D:\Имитационное моделирование\lab6\lab6\lab6\obj\Debug\lab6.exe.config
