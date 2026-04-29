@@ -1,397 +1,450 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
+using System.Windows.Forms.DataVisualization.Charting;
+using static System.Windows.Forms.AxHost;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
-namespace StochasticModeling
+namespace lab6
 {
     public partial class Form1 : Form
     {
-        private readonly Random _rng = new Random();
+        private readonly double[] chiTable =
+        {
+            3.841, 5.991, 7.815, 9.488, 11.070,
+            12.592, 14.067, 15.507, 16.919, 18.307,
+            19.675, 21.026, 22.362, 23.685, 24.996,
+            26.296, 27.587, 28.869, 30.144, 31.410
+        };
+
+        
+        private const ulong _M = (1UL << 63);       
+        private const ulong _Beta = (1UL << 32) + 3UL; 
+        private static ulong _X = (ulong)(uint)Environment.TickCount;
+
+        private static ulong MulMod(ulong a, ulong b)
+        {
+            ulong aHi = a >> 32;
+            ulong aLo = a & 0xFFFFFFFFUL;
+            return ((aHi * b << 32) + aLo * b) & 0x7FFFFFFFFFFFFFFFUL;
+        }
+
+        private static double NextDouble()
+        {
+            _X = MulMod(_Beta, _X);
+            return (double)_X / (double)_M;
+        }
 
         public Form1()
         {
             InitializeComponent();
+
+            dataGridView1.AllowUserToAddRows = false;
+            dataGridView1.AllowUserToDeleteRows = false;
+            dataGridView1.RowHeadersVisible = false;
+            dataGridView1.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dataGridView1.Columns[0].ReadOnly = true;
+
+            chart1.Legends[0].Enabled = false;
+            chart1.Series[0].ChartType = SeriesChartType.Column;
+            chart1.Series[0].IsValueShownAsLabel = true;
+            chart1.Series[0]["PointWidth"] = "0.75";
+            chart1.ChartAreas[0].AxisX.Title = "Значение X";
+            chart1.ChartAreas[0].AxisY.Title = "Эмпирическая вероятность";
+            chart1.ChartAreas[0].AxisX.MajorGrid.Enabled = false;
+
+            chart2.Legends[0].Enabled = false;
+            chart2.Series[0].ChartType = SeriesChartType.Column;
+            chart2.Series[0]["PointWidth"] = "0.85";
+            chart2.ChartAreas[0].AxisX.Title = "Интервалы";
+            chart2.ChartAreas[0].AxisY.Title = "Относительная частота";
+
+            if (chart2.Series.IndexOf("Density") < 0)
+            {
+                chart2.Series.Add("Density");
+            }
+
+            chart2.Series["Density"].ChartType = SeriesChartType.Spline;
+            chart2.Series["Density"].BorderWidth = 3;
+            chart2.Series["Density"].Color = Color.Red;
+
+            NumSample.Value = 5;
+            N_experiment.Value = 1000;
+            N2_experiment.Value = 1000;
+            mean2.Value = 0;
+            var2.Value = 1;
+
+            FillDefaultProbabilities();
+            ClearResults();
+            UpdateProbabilitySum();
         }
 
-        //  ЛАБ. 6.1  
-
-        private void btnStart61_Click(object sender, EventArgs e)
+        private void FillDefaultProbabilities()
         {
-            // Считываем вероятности из полей ввода
-            double[] probInputs = new double[5];
-            TextBox[] probBoxes = { txtP1, txtP2, txtP3, txtP4, txtP5 };
+            double[] p = { 0.10, 0.20, 0.40, 0.20, 0.10 };
+            dataGridView1.RowCount = (int)NumSample.Value;
 
-            int filledCount = 0;
-            double sumFilled = 0;
-            int autoIndex = -1;
-
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < dataGridView1.RowCount; i++)
             {
-                string text = probBoxes[i].Text.Trim().Replace(',', '.');
-                if (string.IsNullOrEmpty(text) || text.ToLower() == "auto")
-                {
-                    autoIndex = i;
-                }
-                else
-                {
-                    if (!double.TryParse(text, System.Globalization.NumberStyles.Any,
-                        System.Globalization.CultureInfo.InvariantCulture, out probInputs[i])
-                        || probInputs[i] < 0 || probInputs[i] > 1)
-                    {
-                        MessageBox.Show($"Prob {i + 1}: введите число от 0 до 1.", "Ошибка");
-                        return;
-                    }
-                    sumFilled += probInputs[i];
-                    filledCount++;
-                }
+                dataGridView1.Rows[i].Cells[0].Value = i + 1;
+                dataGridView1.Rows[i].Cells[1].Value = i < p.Length ? p[i].ToString(CultureInfo.InvariantCulture) : "0";
             }
+        }
 
-            if (autoIndex >= 0)
-            {
-                double autoVal = 1.0 - sumFilled;
-                if (autoVal < 0 || autoVal > 1)
-                {
-                    MessageBox.Show("Сумма вероятностей превышает 1. Проверьте значения.", "Ошибка");
-                    return;
-                }
-                probInputs[autoIndex] = autoVal;
-            }
-            else
-            {
-                if (Math.Abs(probInputs.Sum() - 1.0) > 1e-6)
-                {
-                    MessageBox.Show("Сумма вероятностей должна быть равна 1.", "Ошибка");
-                    return;
-                }
-            }
+        private void ClearResults()
+        {
+            labelMean.Text = "-";
+            labelVar.Text = "-";
+            labelErrorMean.Text = "-";
+            labelErrorVar.Text = "-";
+            label_Chi.Text = "-";
 
-            if (!int.TryParse(txtN61.Text.Trim(), out int N) || N <= 0)
+            labelMean2.Text = "-";
+            labelVar2.Text = "-";
+            labelMeanError2.Text = "-";
+            labelVarError2.Text = "-";
+            label_Chi_2.Text = "-";
+        }
+
+        private void button3_Click(object sender, EventArgs e)
+        {
+            Close();
+        }
+
+        private void Start1_Click(object sender, EventArgs e)
+        {
+            int m = (int)NumSample.Value;
+            int N = (int)N_experiment.Value;
+
+            if (!ReadProbabilities(m, out double[] probabilities))
             {
-                MessageBox.Show("Введите корректное число экспериментов.", "Ошибка");
+                MessageBox.Show("Введите корректные вероятности. Сумма вероятностей должна быть равна 1.");
                 return;
             }
 
-            // Генерация выборки методом обратной функции (инверсный метод)
-            int m = probInputs.Length;
-            double[] theorMean = new double[1];
-            double[] theorVar = new double[1];
+            int[] frequencies = new int[m];
 
-            // Теоретическое среднее и дисперсия (значения 1..5)
-            double mu = 0, sigma2 = 0;
-            for (int i = 0; i < m; i++) { mu += (i + 1) * probInputs[i]; }
-            for (int i = 0; i < m; i++) { sigma2 += probInputs[i] * Math.Pow(i + 1 - mu, 2); }
-
-            int[] counts = new int[m];
-            for (int n = 0; n < N; n++)
+            for (int i = 0; i < N; i++)
             {
-                double u = _rng.NextDouble();
-                double cumul = 0;
-                for (int i = 0; i < m; i++)
-                {
-                    cumul += probInputs[i];
-                    if (u < cumul) { counts[i]++; break; }
-                }
+                int index = GenerateDiscrete(probabilities);
+                frequencies[index]++;
             }
 
-            double[] empProb = counts.Select(c => (double)c / N).ToArray();
-            double empMean = 0, empVar = 0;
-            for (int i = 0; i < m; i++) { empMean += (i + 1) * empProb[i]; }
-            for (int i = 0; i < m; i++) { empVar += empProb[i] * Math.Pow(i + 1 - empMean, 2); }
-
-            double errMean = mu != 0 ? Math.Abs(empMean - mu) / mu * 100 : 0;
-            double errVar = sigma2 != 0 ? Math.Abs(empVar - sigma2) / sigma2 * 100 : 0;
-
-            // Вычисляем статистику хи-квадрат
-            double chi2 = 0;
+            double[] empiricalProbabilities = new double[m];
             for (int i = 0; i < m; i++)
             {
-                double expected = N * probInputs[i];
-                if (expected > 0)
-                    chi2 += Math.Pow(counts[i] - expected, 2) / expected;
+                empiricalProbabilities[i] = (double)frequencies[i] / N;
             }
 
-            // Критическое значение при df = m-1 = 4, уровень значимости α = 0.05  →  9.488
-            int df = m - 1;
-            double chiCrit = ChiSquaredCritical(df, 0.05);
-            bool reject = chi2 > chiCrit;
+            double theoreticalMean = 0;
+            for (int i = 0; i < m; i++)
+            {
+                theoreticalMean += (i + 1) * probabilities[i];
+            }
 
-            lblResult61.Text =
-                $"Average: {empMean:F3} (error = {errMean:F0}%)\r\n" +
-                $"Variance: {empVar:F3} (error = {errVar:F0}%)\r\n\r\n" +
-                $"Chi-squared: {chi2:F3} > {chiCrit:F3}   is {(reject ? "true" : "false")}";
-            lblResult61.ForeColor = reject ? Color.DarkRed : Color.DarkGreen;
+            double theoreticalVariance = 0;
+            for (int i = 0; i < m; i++)
+            {
+                theoreticalVariance += Math.Pow(i + 1, 2) * probabilities[i];
+            }
+            theoreticalVariance -= Math.Pow(theoreticalMean, 2);
 
-            // Рисуем гистограмму
-            DrawHistogram61(picChart61, empProb, probInputs);
+            double empiricalMean = 0;
+            for (int i = 0; i < m; i++)
+            {
+                empiricalMean += (i + 1) * empiricalProbabilities[i];
+            }
+
+            double empiricalVariance = 0;
+            for (int i = 0; i < m; i++)
+            {
+                empiricalVariance += Math.Pow(i + 1, 2) * empiricalProbabilities[i];
+            }
+            empiricalVariance -= Math.Pow(empiricalMean, 2);
+
+            double meanError = RelativeError(empiricalMean, theoreticalMean);
+            double varianceError = RelativeError(empiricalVariance, theoreticalVariance);
+
+            double chiSquare = 0;
+            for (int i = 0; i < m; i++)
+            {
+                chiSquare += Math.Pow(frequencies[i], 2) / (N * probabilities[i]);
+            }
+            chiSquare -= N;
+
+            int degreesOfFreedom = m - 1;
+            double criticalValue = GetCriticalChiSquare(degreesOfFreedom);
+
+            labelMean.Text = empiricalMean.ToString("F4");
+            labelVar.Text = empiricalVariance.ToString("F4");
+            labelErrorMean.Text = (meanError * 100).ToString("F2") + "%";
+            labelErrorVar.Text = (varianceError * 100).ToString("F2") + "%";
+            ShowChiResult(label_Chi, chiSquare, criticalValue);
+
+            DrawDiscreteChart(empiricalProbabilities);
         }
 
-        private void DrawHistogram61(PictureBox pic, double[] emp, double[] theory)
+        private bool ReadProbabilities(int m, out double[] probabilities)
         {
-            int w = pic.Width, h = pic.Height;
-            Bitmap bmp = new Bitmap(w, h);
-            using (Graphics g = Graphics.FromImage(bmp))
+            probabilities = new double[m];
+            double sum = 0;
+
+            for (int i = 0; i < m; i++)
             {
-                g.Clear(Color.White);
+                object value = dataGridView1.Rows[i].Cells[1].Value;
 
-                int padL = 40, padR = 15, padT = 20, padB = 35;
-                int chartW = w - padL - padR;
-                int chartH = h - padT - padB;
-                int m = emp.Length;
-                double maxVal = Math.Max(emp.Max(), theory.Max()) * 1.2;
-
-                // Оси координат
-                Pen axisPen = new Pen(Color.Black, 1.5f);
-                g.DrawLine(axisPen, padL, padT, padL, padT + chartH);
-                g.DrawLine(axisPen, padL, padT + chartH, padL + chartW, padT + chartH);
-
-                Font fnt = new Font("Arial", 7f);
-                Brush txtBrush = Brushes.Black;
-
-                // Подписи по оси Y и горизонтальная сетка
-                for (int i = 0; i <= 4; i++)
+                if (value == null || !TryParseDouble(value.ToString(), out double p))
                 {
-                    double val = maxVal * i / 4;
-                    int y = padT + chartH - (int)(chartH * val / maxVal);
-                    g.DrawLine(Pens.LightGray, padL + 1, y, padL + chartW, y);
-                    g.DrawString(val.ToString("F2"), fnt, txtBrush, 0, y - 6);
+                    return false;
                 }
 
-                // Столбцы гистограммы
-                float barW = (float)chartW / (m * 2.5f);
-                float gap = barW * 0.3f;
-                float groupW = (float)chartW / m;
-
-                for (int i = 0; i < m; i++)
+                if (p <= 0 || p > 1)
                 {
-                    float cx = padL + groupW * i + groupW / 2f;
-
-                    // Эмпирический столбец (синий)
-                    float bh = (float)(chartH * emp[i] / maxVal);
-                    RectangleF rect = new RectangleF(cx - barW - gap / 2, padT + chartH - bh, barW, bh);
-                    g.FillRectangle(new SolidBrush(Color.FromArgb(180, 70, 130, 180)), rect);
-                    g.DrawRectangle(Pens.SteelBlue, rect.X, rect.Y, rect.Width, rect.Height);
-
-                    // Теоретический столбец (оранжевый)
-                    float th = (float)(chartH * theory[i] / maxVal);
-                    RectangleF rect2 = new RectangleF(cx + gap / 2, padT + chartH - th, barW, th);
-                    g.FillRectangle(new SolidBrush(Color.FromArgb(180, 210, 140, 50)), rect2);
-                    g.DrawRectangle(Pens.DarkOrange, rect2.X, rect2.Y, rect2.Width, rect2.Height);
-
-                    // Подпись по оси X
-                    g.DrawString((i + 1).ToString(), fnt, txtBrush, cx - 4, padT + chartH + 4);
-
-                    // Подписи значений над столбцами
-                    g.DrawString(emp[i].ToString("F3"), new Font("Arial", 6f), Brushes.SteelBlue,
-                        rect.X, rect.Y - 11);
-                    g.DrawString(theory[i].ToString("F3"), new Font("Arial", 6f), Brushes.DarkOrange,
-                        rect2.X, rect2.Y - 11);
+                    return false;
                 }
 
-                g.FillRectangle(new SolidBrush(Color.FromArgb(180, 70, 130, 180)), padL + 2, padT, 12, 8);
-                g.DrawString("эмпир.", fnt, Brushes.SteelBlue, padL + 16, padT - 1);
-                g.FillRectangle(new SolidBrush(Color.FromArgb(180, 210, 140, 50)), padL + 65, padT, 12, 8);
-                g.DrawString("теор.", fnt, Brushes.DarkOrange, padL + 79, padT - 1);
-
-                axisPen.Dispose();
+                probabilities[i] = p;
+                sum += p;
             }
-            pic.Image?.Dispose();
-            pic.Image = bmp;
+
+            return Math.Abs(sum - 1.0) < 0.0001;
         }
 
-
-        //  ЛАБ 6.2 
-
-        private void btnStart62_Click(object sender, EventArgs e)
+        private int GenerateDiscrete(double[] probabilities)
         {
-            if (!double.TryParse(txtMean.Text.Trim().Replace(',', '.'), System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture, out double mean))
+            double alpha = NextDouble();
+            double s = alpha;
+
+            for (int i = 0; i < probabilities.Length; i++)
             {
-                MessageBox.Show("Введите корректное среднее.", "Ошибка"); return;
+                s -= probabilities[i];
+                if (s <= 0)
+                {
+                    return i;
+                }
             }
-            if (!double.TryParse(txtVariance.Text.Trim().Replace(',', '.'), System.Globalization.NumberStyles.Any,
-                System.Globalization.CultureInfo.InvariantCulture, out double variance) || variance <= 0)
+
+            return probabilities.Length - 1;
+        }
+
+        private void DrawDiscreteChart(double[] empiricalProbabilities)
+        {
+            chart1.Series[0].Points.Clear();
+
+            for (int i = 0; i < empiricalProbabilities.Length; i++)
             {
-                MessageBox.Show("Введите корректную дисперсию (> 0).", "Ошибка"); return;
+                int point = chart1.Series[0].Points.AddXY(i + 1, empiricalProbabilities[i]);
+                chart1.Series[0].Points[point].Label = empiricalProbabilities[i].ToString("F3");
             }
-            if (!int.TryParse(txtN62.Text.Trim(), out int N) || N <= 0)
+        }
+
+        private void CellValueChanged(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0 && e.ColumnIndex == 1)
             {
-                MessageBox.Show("Введите корректное число экспериментов.", "Ошибка"); return;
+                Start1.Enabled = UpdateProbabilitySum();
+            }
+        }
+
+        private void numRowsCount_ValueChanged(object sender, EventArgs e)
+        {
+            int rows = (int)NumSample.Value;
+            dataGridView1.RowCount = rows;
+
+            for (int i = 0; i < rows; i++)
+            {
+                dataGridView1.Rows[i].Cells[0].Value = i + 1;
+                if (dataGridView1.Rows[i].Cells[1].Value == null)
+                {
+                    dataGridView1.Rows[i].Cells[1].Value = "0";
+                }
+            }
+
+            Start1.Enabled = UpdateProbabilitySum();
+        }
+
+        private bool UpdateProbabilitySum()
+        {
+            double sum = 0;
+
+            for (int i = 0; i < dataGridView1.Rows.Count; i++)
+            {
+                object value = dataGridView1.Rows[i].Cells[1].Value;
+
+                if (value != null && TryParseDouble(value.ToString(), out double p))
+                {
+                    sum += p;
+                }
+            }
+
+            double rest = 1.0 - sum;
+            VarRes.Text = $"Остаток: {rest:F3}";
+
+            bool isCorrect = Math.Abs(rest) < 0.0001;
+            VarRes.ForeColor = isCorrect ? Color.Green : Color.Red;
+
+            return isCorrect;
+        }
+
+        private void Start2_Click(object sender, EventArgs e)
+        {
+            double mean = (double)mean2.Value;
+            double variance = (double)var2.Value;
+            int N = (int)N2_experiment.Value;
+
+            if (variance <= 0)
+            {
+                MessageBox.Show("Дисперсия должна быть больше нуля.");
+                return;
             }
 
             double sigma = Math.Sqrt(variance);
+            double[] data = new double[N];
 
-            // Генерируем выборку методом Бокса–Мюллера
-            double[] samples = GenerateNormal(N, mean, sigma);
-
-            double empMean = samples.Average();
-            double empVar = samples.Select(x => Math.Pow(x - empMean, 2)).Average();
-
-            double errMean = mean != 0 ? Math.Abs(empMean - mean) / Math.Abs(mean) * 100 : 0;
-            double errVar = Math.Abs(empVar - variance) / variance * 100;
-
-            // 7 интервалов гистограммы, центрированных на mean ± 3σ
-            int bins = 7;
-            double lo = mean - 3.5 * sigma;
-            double hi = mean + 3.5 * sigma;
-            double binW = (hi - lo) / bins;
-
-            int[] binCounts = new int[bins];
-            foreach (double s in samples)
+            double sum = 0;
+            for (int i = 0; i < N; i++)
             {
-                int idx = (int)((s - lo) / binW);
-                if (idx < 0) idx = 0;
-                if (idx >= bins) idx = bins - 1;
-                binCounts[idx]++;
+                data[i] = GenerateNormal(mean, sigma);
+                sum += data[i];
             }
 
-            double[] empFreq = binCounts.Select(c => (double)c / (N * binW)).ToArray();
+            double empiricalMean = sum / N;
 
-            // Теоретические частоты — значение плотности нормального распределения в центре каждого интервала
-            double[] theorFreq = new double[bins];
-            for (int i = 0; i < bins; i++)
+            double varianceSum = 0;
+            for (int i = 0; i < N; i++)
             {
-                double x = lo + (i + 0.5) * binW;
-                theorFreq[i] = NormalPDF(x, mean, sigma);
+                varianceSum += Math.Pow(data[i] - empiricalMean, 2);
             }
 
-            // Вычисляем статистику хи-квадрат
-            double chi2 = 0;
-            for (int i = 0; i < bins; i++)
+            double empiricalVariance = varianceSum / N;
+
+            double meanError = RelativeError(empiricalMean, mean);
+            double varianceError = RelativeError(empiricalVariance, variance);
+
+            int intervalCount = (int)Math.Floor(1 + Math.Log(N, 2));
+            if (intervalCount < 5) intervalCount = 5;
+            if (intervalCount > 20) intervalCount = 20;
+
+            double min = data.Min();
+            double max = data.Max();
+            double h = (max - min) / intervalCount;
+
+            if (h <= 0)
             {
-                double exp = N * binW * theorFreq[i];
-                if (exp > 0)
-                    chi2 += Math.Pow(binCounts[i] - exp, 2) / exp;
+                MessageBox.Show("Не удалось построить интервалы для гистограммы.");
+                return;
             }
-            int df = bins - 3; // оцениваем среднее и дисперсию, поэтому вычитаем 3
-            double chiCrit = ChiSquaredCritical(df, 0.05);
-            bool reject = chi2 > chiCrit;
 
-            lblResult62.Text =
-                $"Average: {empMean:F3} (error = {errMean:F0}%)\r\n" +
-                $"Variance: {empVar:F3} (error = {errVar:F0}%)\r\n\r\n" +
-                $"Chi-squared: {chi2:F3} > {chiCrit:F3}   is {(reject ? "true" : "false")}";
-            lblResult62.ForeColor = reject ? Color.DarkRed : Color.DarkGreen;
-
-            DrawHistogram62(picChart62, bins, lo, binW, empFreq, theorFreq, mean, sigma);
-        }
-
-        private double[] GenerateNormal(int N, double mean, double sigma)
-        {
-            double[] samples = new double[N];
-            for (int i = 0; i < N; i += 2)
+            int[] frequencies = new int[intervalCount];
+            for (int i = 0; i < N; i++)
             {
-                double u1 = _rng.NextDouble();
-                double u2 = _rng.NextDouble();
-                double z0 = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2 * Math.PI * u2);
-                double z1 = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2 * Math.PI * u2);
-                samples[i] = mean + sigma * z0;
-                if (i + 1 < N) samples[i + 1] = mean + sigma * z1;
+                int index = (int)((data[i] - min) / h);
+                if (index >= intervalCount) index = intervalCount - 1;
+                if (index < 0) index = 0;
+                frequencies[index]++;
             }
-            return samples;
-        }
 
-        private void DrawHistogram62(PictureBox pic, int bins, double lo, double binW,
-            double[] empFreq, double[] theorFreq, double mean, double sigma)
-        {
-            int w = pic.Width, h = pic.Height;
-            Bitmap bmp = new Bitmap(w, h);
-            using (Graphics g = Graphics.FromImage(bmp))
+            double chiSquare = 0;
+            chart2.Series[0].Points.Clear();
+            chart2.Series["Density"].Points.Clear();
+
+            for (int i = 0; i < intervalCount; i++)
             {
-                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
-                g.Clear(Color.White);
+                double left = min + i * h;
+                double right = left + h;
+                double middle = (left + right) / 2.0;
 
-                int padL = 45, padR = 15, padT = 20, padB = 40;
-                int chartW = w - padL - padR;
-                int chartH = h - padT - padB;
+                double pTheoretical = NormalDensity(middle, mean, sigma) * h;
 
-                double maxVal = Math.Max(empFreq.Max(), theorFreq.Max()) * 1.25;
-
-                // Оси координат
-                Pen axisPen = new Pen(Color.Black, 1.5f);
-                g.DrawLine(axisPen, padL, padT, padL, padT + chartH);
-                g.DrawLine(axisPen, padL, padT + chartH, padL + chartW, padT + chartH);
-
-                Font fnt = new Font("Arial", 7f);
-                Font fntSmall = new Font("Arial", 6f);
-                Brush txtBrush = Brushes.Black;
-
-                // Подписи по оси Y и горизонтальная сетка
-                for (int i = 0; i <= 4; i++)
+                if (pTheoretical > 0)
                 {
-                    double val = maxVal * i / 4;
-                    int y = padT + chartH - (int)(chartH * val / maxVal);
-                    g.DrawLine(Pens.LightGray, padL + 1, y, padL + chartW, y);
-                    g.DrawString(val.ToString("F2"), fntSmall, txtBrush, 0, y - 6);
+                    chiSquare += Math.Pow(frequencies[i] - N * pTheoretical, 2) / (N * pTheoretical);
                 }
 
-                float bw = (float)chartW / bins;
-
-                // Столбцы гистограммы
-                for (int i = 0; i < bins; i++)
-                {
-                    float x = padL + i * bw;
-                    float bh = (float)(chartH * empFreq[i] / maxVal);
-                    RectangleF rect = new RectangleF(x + 1, padT + chartH - bh, bw - 2, bh);
-                    g.FillRectangle(new SolidBrush(Color.FromArgb(160, 70, 130, 180)), rect);
-                    g.DrawRectangle(new Pen(Color.SteelBlue), rect.X, rect.Y, rect.Width, rect.Height);
-
-                    // Подпись по оси X (левая граница интервала)
-                    double binCenter = lo + (i + 0.5) * binW;
-                    g.DrawString($"{lo + i * binW:F1}", fntSmall, txtBrush, x - 2, padT + chartH + 3);
-                }
-                // Подпись правой границы последнего интервала
-                g.DrawString($"{lo + bins * binW:F1}", fntSmall, txtBrush,
-                    padL + bins * bw - 10, padT + chartH + 3);
-
-                // Кривая нормального распределения
-                using (Pen curvePen = new Pen(Color.DarkGreen, 2f))
-                {
-                    List<PointF> pts = new List<PointF>();
-                    for (int px = 0; px <= chartW; px++)
-                    {
-                        double x = lo + (double)px / chartW * (bins * binW);
-                        double pdf = NormalPDF(x, mean, sigma);
-                        float py = padT + chartH - (float)(chartH * pdf / maxVal);
-                        pts.Add(new PointF(padL + px, py));
-                    }
-                    g.DrawLines(curvePen, pts.ToArray());
-                }
-
-                axisPen.Dispose();
+                double empiricalProbability = (double)frequencies[i] / N;
+                string intervalName = $"[{left:F2}; {right:F2}]";
+                chart2.Series[0].Points.AddXY(intervalName, empiricalProbability);
             }
-            pic.Image?.Dispose();
-            pic.Image = bmp;
+
+            int degreesOfFreedom = intervalCount - 1;
+            double criticalValue = GetCriticalChiSquare(degreesOfFreedom);
+
+            labelMean2.Text = empiricalMean.ToString("F4");
+            labelVar2.Text = empiricalVariance.ToString("F4");
+            labelMeanError2.Text = (meanError * 100).ToString("F2") + "%";
+            labelVarError2.Text = (varianceError * 100).ToString("F2") + "%";
+            ShowChiResult(label_Chi_2, chiSquare, criticalValue);
+
+            DrawNormalDensity(min, max, h, mean, sigma);
         }
 
-
-        //  Вспомогательные математические функции
-
-        private static double NormalPDF(double x, double mean, double sigma)
+        private double GenerateNormal(double mean, double sigma)
         {
-            return Math.Exp(-0.5 * Math.Pow((x - mean) / sigma, 2)) / (sigma * Math.Sqrt(2 * Math.PI));
+            double u1 = 1.0 - NextDouble();
+            double u2 = 1.0 - NextDouble();
+
+            double z = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
+            return mean + sigma * z;
         }
 
-
-        /// Критическое значение χ² по аппроксимации Вилсона–Хильферти.
-
-        private static double ChiSquaredCritical(int df, double alpha)
+        private double NormalDensity(double x, double mean, double sigma)
         {
-            // Точные табличные значения для распространённых степеней свободы
-            double[,] table = {
-                { 1, 3.841 }, { 2, 5.991 }, { 3, 7.815 }, { 4, 9.488 },
-                { 5, 11.070 }, { 6, 12.592 }, { 7, 14.067 }, { 8, 15.507 },
-                { 9, 16.919 }, { 10, 18.307 }, { 11, 19.675 }, { 12, 21.026 },
-                { 15, 24.996 }, { 20, 31.410 }, { 25, 37.652 }, { 30, 43.773 }
-            };
-            for (int i = 0; i < table.GetLength(0); i++)
-                if ((int)table[i, 0] == df) return table[i, 1];
+            return 1.0 / (sigma * Math.Sqrt(2.0 * Math.PI)) *
+                   Math.Exp(-Math.Pow(x - mean, 2) / (2.0 * sigma * sigma));
+        }
 
-            // Аппроксимация Вилсона–Хильферти для значений не из таблицы
-            double zp = 1.6449; // квантиль z для alpha = 0.05
-            double x = df * Math.Pow(1 - 2.0 / (9 * df) + zp * Math.Sqrt(2.0 / (9 * df)), 3);
-            return x;
+        private void DrawNormalDensity(double min, double max, double h, double mean, double sigma)
+        {
+            double step = (max - min) / 100.0;
+            if (step <= 0) return;
+
+            for (double x = min; x <= max; x += step)
+            {
+                chart2.Series["Density"].Points.AddXY(x, NormalDensity(x, mean, sigma) * h);
+            }
+
+            chart2.ChartAreas[0].AxisX.LabelStyle.Angle = -45;
+            chart2.ChartAreas[0].AxisX.MajorGrid.LineColor = Color.LightGray;
+            chart2.ChartAreas[0].AxisY.MajorGrid.LineColor = Color.LightGray;
+        }
+
+        private double RelativeError(double empirical, double theoretical)
+        {
+            if (Math.Abs(theoretical) < 0.0000001)
+            {
+                return Math.Abs(empirical - theoretical);
+            }
+
+            return Math.Abs(empirical - theoretical) / Math.Abs(theoretical);
+        }
+
+        private double GetCriticalChiSquare(int degreesOfFreedom)
+        {
+            if (degreesOfFreedom < 1) degreesOfFreedom = 1;
+            if (degreesOfFreedom > chiTable.Length) degreesOfFreedom = chiTable.Length;
+            return chiTable[degreesOfFreedom - 1];
+        }
+
+        private void ShowChiResult(Label label, double chiSquare, double criticalValue)
+        {
+            if (chiSquare < criticalValue)
+            {
+                label.Text = $"Гипотеза верна: χ² = {chiSquare:F3} < {criticalValue:F3}";
+                label.ForeColor = Color.Green;
+            }
+            else
+            {
+                label.Text = $"Гипотеза неверна: χ² = {chiSquare:F3} > {criticalValue:F3}";
+                label.ForeColor = Color.Red;
+            }
+        }
+
+        private bool TryParseDouble(string text, out double value)
+        {
+            text = text.Replace(',', '.');
+            return double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
         }
     }
 }

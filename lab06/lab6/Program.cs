@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Windows.Forms;
 
-namespace StochasticModeling
+namespace lab6
 {
-    static class Program
+    internal static class Program
     {
         [STAThread]
         static void Main()
